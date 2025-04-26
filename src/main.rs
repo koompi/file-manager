@@ -11,18 +11,6 @@ use iced::{Application, Font, Pixels, Settings};
 use std::borrow::Cow; // Ensure gstreamer crate is imported
 
 fn main() -> iced::Result {
-    // Initialize GStreamer - THIS IS CRUCIAL
-    if let Err(e) = gstreamer::init() {
-        eprintln!(
-            "Failed to initialize GStreamer: {}. Video playback might not work.",
-            e
-        );
-        // Depending on requirements, you might want to exit here:
-        // std::process::exit(1);
-    } else {
-        println!("GStreamer initialized successfully.");
-    }
-
     let mut settings = Settings::default();
 
     // Load the custom font data
