@@ -6,15 +6,40 @@ A modern, feature-rich file manager application built with Rust and the Iced GUI
 
 ## Features
 
-- **Modern UI**: Clean, responsive interface with customizable views
-- **File Operations**: Copy, cut, paste, delete, and rename files and directories
-- **Navigation**: Breadcrumb path navigation, forward/back history, and quick access shortcuts
-- **Preview Support**: Preview images and text files directly in the application
-- **Sorting & Grouping**: Sort files by name, size, date, or type with group by functionality
-  - Custom sort icons for ascending/descending order
-- **File Details**: View detailed information about selected files
-- **Customization**: Show/hide hidden files, adjust view preferences
-- **Custom Font Support**: Using InterKhmerLooped font for better readability
+- **Modern UI**: Clean, responsive interface with customizable three-panel layout
+  - Main file browser with customizable views (grid layout)
+  - Collapsible details panel
+  - Sidebar with quick access locations
+- **File Operations**:
+
+  - Copy, cut, paste functionality for files and folders
+  - Delete files and directories
+  - Rename files and folders with inline editing
+
+- **Navigation**:
+  - Breadcrumb path navigation for intuitive directory traversal
+  - Forward/back history navigation
+  - Quick access sidebar with common locations (Home, Documents, Downloads, etc.)
+  - Double-click to enter directories
+- **File Preview**:
+  - Preview images with automatically generated thumbnails
+  - Text file content preview
+  - File metadata display (size, modification date, type)
+- **Advanced Sorting & Grouping**:
+
+  - Sort files by name, size, modified date, or type
+  - Toggle between ascending/descending order with custom sorting icons
+  - Group by file type or MIME type (Images, Documents, Archives, etc.)
+  - Expandable/collapsible groups with item count
+
+- **View Customization**:
+  - Show/hide hidden files toggle
+  - Toggle details panel visibility
+  - Multiple view options for file display
+- **Visual Enhancements**:
+  - Custom icon set for files, folders and special locations
+  - Visual indicators for selected files and sorting state
+  - Custom styling with the InterKhmerLooped font
 
 ## Building and Running
 
