@@ -16,6 +16,7 @@ const NAV_ICON_SIZE: f32 = 16.0; // Size for nav icons
 const SORT_ICON_SIZE: f32 = 16.0; // Size for sort icons
 const SORT_BUTTON_PADDING: f32 = 6.0; // Padding for sort icon buttons
 const BREADCRUMB_TEXT_SIZE: u16 = 14; // Keep text size for breadcrumbs
+const TOGGLE_PANEL_ICON_SIZE: f32 = 16.0; // Size for the new toggle icon
 
 pub fn build_top_bar(state: &FileManager) -> Element<Message> {
     // --- Navigation Buttons ---
@@ -268,6 +269,30 @@ pub fn build_top_bar(state: &FileManager) -> Element<Message> {
         .align_items(Alignment::Center);
     // --- End Grouping Controls ---
 
+    // --- Toggle Details Panel Button ---
+    let toggle_panel_icon = if state.show_details_panel {
+        FORWARD_ICON_PATH // Placeholder, replace with a better icon
+    } else {
+        BACK_ICON_PATH // Placeholder, replace with a better icon
+    };
+
+    let toggle_panel_button_inner = button(
+        image(toggle_panel_icon)
+            .width(Length::Fixed(TOGGLE_PANEL_ICON_SIZE))
+            .height(Length::Fixed(TOGGLE_PANEL_ICON_SIZE)),
+    )
+    .on_press(Message::ToggleDetailsPanel)
+    .style(theme::Button::Secondary)
+    .padding(SORT_BUTTON_PADDING);
+
+    let toggle_panel_button = container(toggle_panel_button_inner)
+        .width(Length::Fixed(BUTTON_HEIGHT))
+        .height(Length::Fixed(BUTTON_HEIGHT))
+        .center_x()
+        .center_y()
+        .style(theme::Container::Custom(Box::new(NavButtonEndStyle)));
+    // --- End Toggle Details Panel Button ---
+
     row![
         navigation_buttons,
         Space::with_width(Length::Fixed(SPACING / 2.0)),
@@ -278,6 +303,8 @@ pub fn build_top_bar(state: &FileManager) -> Element<Message> {
         grouping_controls,               // Add grouping controls
         Space::with_width(Length::Fixed(SPACING / 2.0)), // Add spacing
         sorting_controls,                // Add sorting controls
+        Space::with_width(Length::Fixed(SPACING / 2.0)), // Add spacing
+        toggle_panel_button,             // Add the new toggle button
     ]
     .padding(PADDING)
     .spacing(SPACING)

@@ -1,13 +1,14 @@
 use crate::app::{FileManager, GroupCriteria, Message};
 use crate::constants::*;
+use crate::constants::{FILE_ICON_PATH, FOLDER_ICON_PATH, THUMBNAIL_SIZE};
 use crate::fs_utils::DirEntry;
 use crate::ui::styles::{SelectedItemStyle, SECONDARY_TEXT_COLOR};
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::{button, column, container, image, row, scrollable, text, Column, Rule};
-use iced::{theme, Alignment, Element, Length, Renderer, Theme};
+use iced::{theme, Alignment, ContentFit, Element, Length, Renderer, Theme}; // Import ContentFit directly
 use iced_aw::Wrap;
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::PathBuf; // Import THUMBNAIL_SIZE
 
 const PADDING: f32 = 8.0;
 const SPACING: f32 = 10.0;
@@ -24,9 +25,8 @@ fn create_item_widget<'a>(
     let path = entry.path.clone();
     let is_selected = selected_path.as_ref() == Some(&path);
 
-    let display_name_full = path
-        .file_name()
-        .map_or_else(|| "..".into(), |name| name.to_string_lossy().into_owned());
+    // Use entry.display_name directly
+    let display_name_full = &entry.display_name;
 
     let display_name = if display_name_full.chars().count() > MAX_FILENAME_LEN {
         format!(
@@ -38,33 +38,47 @@ fn create_item_widget<'a>(
             ELLIPSIS
         )
     } else {
-        display_name_full
+        display_name_full.clone() // Clone if not truncated
     };
 
-    let icon_path = if entry.is_dir {
-        FOLDER_ICON_PATH
+    // Determine content: Thumbnail, Icon, or Placeholder
+    let item_content = if let Some(thumbnail_handle) = &entry.thumbnail {
+        // Use thumbnail if available
+        image(thumbnail_handle.clone())
+            .width(Length::Fixed(THUMBNAIL_SIZE as f32))
+            .height(Length::Fixed(THUMBNAIL_SIZE as f32))
+            .content_fit(ContentFit::Contain) // Use imported ContentFit
     } else {
-        FILE_ICON_PATH
+        // Use icon if no thumbnail
+        let icon_path_string = if entry.is_dir {
+            FOLDER_ICON_PATH.to_string() // Convert to String
+        } else {
+            // Use resolved icon for apps, otherwise generic file icon
+            entry
+                .resolved_icon_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_else(|| FILE_ICON_PATH.to_string())
+        };
+        image(icon_path_string) // Pass String to image()
+            .width(Length::Fixed(48.0)) // Keep icon size consistent
+            .height(Length::Fixed(48.0))
+            .content_fit(ContentFit::Contain) // Use imported ContentFit
     };
 
-    let entry_icon = image(icon_path)
-        .height(Length::Fixed(ICON_SIZE))
-        .width(Length::Fixed(ICON_SIZE));
-
-    let item_content = column![
-        entry_icon,
-        text(display_name)
-            .width(Length::Fixed(ITEM_WIDTH))
-            .horizontal_alignment(Horizontal::Center)
-    ]
-    .spacing(5)
-    .align_items(Alignment::Center)
-    .width(Length::Fixed(ITEM_WIDTH));
-
-    let item_button = button(item_content)
-        .on_press(Message::ItemClicked(path.clone()))
-        .style(theme::Button::Text)
-        .padding(0);
+    let item_button = button(
+        column![
+            item_content, // Use the determined content (thumbnail or icon)
+            text(display_name) // Use the potentially truncated display_name
+                .size(14)
+                .horizontal_alignment(Horizontal::Center)
+        ]
+        .spacing(5)
+        .align_items(Alignment::Center)
+        .width(Length::Fixed(ITEM_WIDTH)), // Fixed width for grid items
+    )
+    .style(theme::Button::Text)
+    .on_press(Message::ItemClicked(path.clone()));
 
     let item_container = container(item_button)
         .width(Length::Fixed(ITEM_WIDTH + PADDING))

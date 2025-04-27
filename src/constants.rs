@@ -9,6 +9,8 @@ pub const MUSIC_ICON_PATH: &str = "icons/music.png";
 pub const PICTURES_ICON_PATH: &str = "icons/pictures.png";
 pub const VIDEOS_ICON_PATH: &str = "icons/videos.png";
 pub const DESKTOP_ICON_PATH: &str = "icons/desktop.png"; // Added desktop icon
+                                                         // TODO: Add a dedicated applications icon
+pub const APPLICATIONS_ICON_PATH: &str = FOLDER_ICON_PATH; // Reusing folder icon for now
 
 // Icons for Top Bar Navigation
 pub const BACK_ICON_PATH: &str = "icons/chevron-left.png";
@@ -28,3 +30,7 @@ pub const SORT_DATE_ASC_ICON_PATH: &str = "icons/calendar-arrow-up.png"; // Olde
 pub const SORT_DATE_DESC_ICON_PATH: &str = "icons/calendar-arrow-down.png"; // Newest to oldest
 pub const SORT_TYPE_ASC_ICON_PATH: &str = "icons/arrow-up-a-z.png"; // Placeholder, maybe use A-Z for type?
 pub const SORT_TYPE_DESC_ICON_PATH: &str = "icons/arrow-down-z-a.png"; // Placeholder, maybe use Z-A for type?
+
+// Thumbnail dimensions
+pub const THUMBNAIL_SIZE: u32 = 64;
+pub const THUMBNAIL_CACHE_DIR: &str = "thumbnails";

@@ -21,11 +21,11 @@ pub fn view(state: &FileManager) -> Element<Message> {
         Rule::horizontal(1).style(theme::Rule::Custom(Box::new(RuleStyle))), // Changed Rule::Custom to theme::Rule::Custom
         file_grid
     ]
-    .spacing(0); // Removed width(Length::Fill) here, will be set below
+    .spacing(0);
 
     // --- Final Layout ---
-    // Conditionally create the layout based on whether the details panel should be shown
-    let main_layout = if state.selected_path.is_some() {
+    // Conditionally create the layout based on the show_details_panel flag
+    let main_layout = if state.show_details_panel {
         // Layout WITH details panel (Sidebar | Main (75%) | Details (25%))
         row![
             sidebar,

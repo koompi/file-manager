@@ -23,12 +23,13 @@ fn sidebar_button_content(icon_path: &str, label: &str) -> Element<'static, Mess
 }
 
 pub fn build_sidebar(_state: &FileManager) -> Element<Message> {
+    let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+    let applications_path = home_dir.join("Applications");
+
     let mut sidebar_content = column![
         Space::with_height(Length::Fixed(PADDING)),
         button(sidebar_button_content(HOME_ICON_PATH, "Home"))
-            .on_press(Message::Navigate(
-                dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
-            ))
+            .on_press(Message::Navigate(home_dir.clone()))
             .style(theme::Button::Text)
             .width(Length::Fill)
             .padding(PADDING),
@@ -41,6 +42,18 @@ pub fn build_sidebar(_state: &FileManager) -> Element<Message> {
     ]
     .spacing(SPACING / 2.0)
     .padding(PADDING);
+
+    // Add Applications button before other user dirs
+    sidebar_content = sidebar_content.push(
+        button(sidebar_button_content(
+            APPLICATIONS_ICON_PATH,
+            "Applications",
+        ))
+        .on_press(Message::Navigate(applications_path))
+        .style(theme::Button::Text)
+        .width(Length::Fill)
+        .padding(PADDING),
+    );
 
     let user_dirs = [
         ("Desktop", DESKTOP_ICON_PATH, dirs::desktop_dir()),

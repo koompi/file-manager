@@ -1,13 +1,15 @@
 use crate::fs_utils::{
-    copy_item, delete_item, load_preview, move_item, open_file, read_dir, rename_item, DirEntry,
-    PreviewContent,
+    copy_item, delete_item, move_item, open_file, read_dir, rename_item,
+    setup_applications_directory, DirEntry, PreviewContent, generate_thumbnail,
 };
 use crate::ui::view::view;
 use dirs;
 use iced::executor;
 use iced::{Application, Command, Element, Theme};
+use iced::widget::image;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortCriteria {
@@ -53,6 +55,9 @@ pub struct FileManager {
     pub renaming_path: Option<PathBuf>,
     pub rename_input_value: String,
     pub preview_content: Option<PreviewContent>,
+    pub show_details_panel: bool,
+    pub last_click_time: Option<Instant>,
+    pub last_clicked_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +86,9 @@ pub enum Message {
     ToggleGroupCollapse(String),
     FileOpenResult(Result<(), String>),
     LoadPreview(Result<PreviewContent, String>),
+    SetupApplicationsResult(Result<(), String>),
+    ToggleDetailsPanel,
+    ThumbnailLoaded(PathBuf, Option<image::Handle>),
 }
 
 impl Application for FileManager {
@@ -110,9 +118,12 @@ impl Application for FileManager {
             renaming_path: None,
             rename_input_value: String::new(),
             preview_content: None,
+            show_details_panel: true,
+            last_click_time: None,
+            last_clicked_path: None,
         };
-        (
-            initial_state,
+
+        let initial_commands = Command::batch([
             Command::perform(
                 read_dir(
                     initial_path,
@@ -123,7 +134,13 @@ impl Application for FileManager {
                 ),
                 Message::LoadEntries,
             ),
-        )
+            Command::perform(
+                setup_applications_directory(),
+                Message::SetupApplicationsResult,
+            ),
+        ]);
+
+        (initial_state, initial_commands)
     }
 
     fn title(&self) -> String {
@@ -311,61 +328,26 @@ impl Application for FileManager {
                 )
             }
             Message::ItemClicked(path) => {
-                if self.renaming_path.is_some() && self.renaming_path != Some(path.clone()) {
-                    self.renaming_path = None;
-                    self.rename_input_value.clear();
+                let is_double_click = self.last_clicked_path.as_ref() == Some(&path) &&
+                                      self.last_click_time.map_or(false, |t| t.elapsed() < Duration::from_millis(500));
+
+                self.selected_path = Some(path.clone());
+                self.last_click_time = Some(Instant::now());
+                self.last_clicked_path = Some(path.clone());
+
+                if is_double_click {
+                    return Command::perform(async move { path }, Message::Navigate);
                 }
 
-                let is_double_click = self.selected_path.as_ref() == Some(&path);
-                let mut command = Command::none();
-
-                if is_double_click && self.renaming_path.is_none() {
-                    self.selected_path = None;
-                    self.preview_content = None;
-                    if path.is_dir() {
-                        let target_path = path.canonicalize().unwrap_or_else(|_| path.clone());
-                        if target_path != self.current_path {
-                            self.current_path = target_path.clone();
-                            self.error = None;
-                            self.update_history(target_path.clone());
-                            command = Command::perform(
-                                read_dir(
-                                    target_path,
-                                    self.show_hidden_files,
-                                    self.sort_criteria,
-                                    self.sort_order,
-                                    self.group_criteria,
-                                ),
-                                Message::LoadEntries,
-                            );
-                        }
-                    } else if path.is_file() {
-                        command = Command::perform(open_file(path), Message::FileOpenResult);
-                    } else {
-                        self.error = Some(format!("Cannot open item: {}", path.display()));
-                    }
-                } else {
-                    let previously_selected = self.selected_path.clone();
-                    self.selected_path = Some(path.clone());
-
-                    if previously_selected.as_ref() != Some(&path) {
-                        self.preview_content = None;
-
-                        if let Some(entry) = self.entries.iter().find(|e| e.path == path) {
-                            if !entry.is_dir {
-                                command = Command::perform(
-                                    load_preview(path.clone()),
-                                    Message::LoadPreview,
-                                );
-                            } else {
-                                self.preview_content = None;
-                            }
-                        } else {
-                            self.preview_content = None;
-                        }
+                if let Some(entry) = self.entries.iter().find(|e| e.path == *self.selected_path.as_ref().unwrap()) {
+                    if entry.mime_group.as_deref() == Some("Images") && entry.thumbnail.is_none() {
+                         let p = entry.path.clone();
+                         return Command::perform(load_thumbnail_async(p.clone()), move |handle| {
+                             Message::ThumbnailLoaded(p, handle)
+                         });
                     }
                 }
-                command
+                Command::none()
             }
             Message::DeleteItem(path) => {
                 println!("Delete requested for: {}", path.display());
@@ -637,6 +619,22 @@ impl Application for FileManager {
                 }
                 Command::none()
             }
+            Message::SetupApplicationsResult(result) => {
+                if let Err(e) = result {
+                    eprintln!("Failed to set up applications directory: {}", e);
+                }
+                Command::none()
+            }
+            Message::ToggleDetailsPanel => {
+                self.show_details_panel = !self.show_details_panel;
+                Command::none()
+            }
+            Message::ThumbnailLoaded(path, handle) => {
+                if let Some(entry) = self.entries.iter_mut().find(|e| e.path == path) {
+                    entry.thumbnail = handle;
+                }
+                Command::none()
+            }
         }
     }
 
@@ -674,4 +672,16 @@ impl FileManager {
     pub fn is_renaming(&self, path: &PathBuf) -> bool {
         self.renaming_path.as_ref() == Some(path)
     }
+}
+
+async fn load_thumbnail_async(path: PathBuf) -> Option<image::Handle> {
+    tokio::task::spawn_blocking(move || {
+        match generate_thumbnail(&path) {
+            Ok(handle) => Some(handle),
+            Err(e) => {
+                eprintln!("Failed to generate thumbnail for {:?}: {}", path, e);
+                None
+            }
+        }
+    }).await.ok().flatten()
 }

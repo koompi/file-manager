@@ -28,5 +28,12 @@ fn main() -> iced::Result {
     };
     settings.default_text_size = Pixels(11.0); // Set default text size to 11 pixels
 
-    FileManager::run(settings)
+    let result = FileManager::run(settings);
+
+    // Attempt to save the icon cache on exit
+    if let Err(e) = fs_utils::save_icon_cache() {
+        eprintln!("Error saving icon cache: {}", e);
+    }
+
+    result // Return the result from FileManager::run
 }
